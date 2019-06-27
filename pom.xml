@@ -4,12 +4,12 @@
   <artifactId>corpus-explorer</artifactId>
   <version>1.0-SNAPSHOT</version>
   <name>${project.artifactId}</name>
-  <description>My wonderfull scala app</description>
-  <inceptionYear>2018</inceptionYear>
+  <description>A scala app for getting a simple plaintext corpus statistics</description>
+  <inceptionYear>2019</inceptionYear>
   <licenses>
     <license>
-      <name>My License</name>
-      <url>http://....</url>
+      <name>GNU General Public License v3.0</name>
+      <url>https://www.gnu.org/licenses/gpl-3.0.html</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
