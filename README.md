@@ -3,6 +3,7 @@
 A tool for getting a quick insight in a text corpus.<br>
 
 #### Prerequisites
+* Oracle JDK 8 or openjdk-8-jdk
 * Apache Spark 2.3.3
 * Scala 2.11
 
