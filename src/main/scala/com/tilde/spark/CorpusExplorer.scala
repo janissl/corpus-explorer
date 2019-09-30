@@ -1,5 +1,7 @@
 package com.tilde.spark
 
+import java.lang.management.ManagementFactory
+
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
@@ -8,6 +10,15 @@ import scala.reflect.io.File
 
 
 object CorpusExplorer {
+  def getFullstopTokens: UserDefinedFunction = udf(
+    (wordList: Seq[String]) => {
+      val lastWord = wordList.last
+      if (lastWord.matches("""^.*\p{L}\.$""")) {
+        lastWord
+      } else {
+        null
+      }
+    })
 
   def getMaxWordLength: UserDefinedFunction = udf(
     (wordList: Seq[String]) => (for (word <- wordList) yield word.length).max
@@ -31,8 +42,14 @@ object CorpusExplorer {
     val startTime = System.currentTimeMillis()
 
     val appName = CorpusExplorer.getClass.getSimpleName.replaceAll("""\$$""", "")
-    //    val spark = SparkSession.builder.appName(appName).master("local[*]").getOrCreate()
-    val spark = SparkSession.builder.appName(appName).getOrCreate()
+    val appMode = if (ManagementFactory.getRuntimeMXBean.getInputArguments.toString.indexOf("-agentlib:jdwp") > 0) "debug" else "run"
+
+    val spark = if (appMode == "debug") {
+      SparkSession.builder.appName(appName).master("local[*]").getOrCreate()
+    } else {
+      SparkSession.builder.appName(appName).getOrCreate()
+    }
+
     import spark.implicits._
 
     val df = spark
@@ -48,6 +65,21 @@ object CorpusExplorer {
       .withColumn("words", split(df("value"), """\s+"""))
       .withColumnRenamed("value", "sentence")
 
+    val fullstopTokenFile = File(args(0) + ".fullstop_tokens")
+
+    wordsDF
+      .withColumn("fullstopTokens", getFullstopTokens($"words"))
+      .filter($"fullstopTokens".isNotNull)
+      .groupBy($"fullstopTokens")
+      .count
+      .sort($"fullstopTokens")
+      .coalesce(1)
+      .write
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(fullstopTokenFile.path)
 
     val sentLengthDF = wordsDF
       .withColumn("sentence_length", size($"words"))
@@ -60,7 +92,11 @@ object CorpusExplorer {
       .sort($"sentence_length".desc, $"sentence")
       .coalesce(1)
       .write
-      .csv(sentencesByLengthFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(sentencesByLengthFile.path)
 
     val sentLengthDistributionFile = File(args(0) + ".sentence_length_distribution")
     removeOldOutput(sentLengthDistributionFile)
@@ -72,7 +108,11 @@ object CorpusExplorer {
       .sort($"sentence_length".desc)
       .coalesce(1)
       .write
-      .csv(sentLengthDistributionFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(sentLengthDistributionFile.path)
 
     val wordCountDF = df
       .flatMap(_.split("""\s+"""))
@@ -90,7 +130,11 @@ object CorpusExplorer {
       .sort($"word")
       .coalesce(1)
       .write
-      .csv(wordCountFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(wordCountFile.path)
 
     println("Unique words: %d (from %d)".format(
       wordCountDF.count,
@@ -112,7 +156,11 @@ object CorpusExplorer {
       .sort($"word_length".desc)
       .coalesce(1)
       .write
-      .csv(wordCountsByLengthFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(wordCountsByLengthFile.path)
 
     val wordsByLengthFile = File(args(0) + ".words_by_length")
     removeOldOutput(wordsByLengthFile)
@@ -121,7 +169,11 @@ object CorpusExplorer {
       .sort($"word_length".desc, $"word")
       .coalesce(1)
       .write
-      .csv(wordsByLengthFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(wordsByLengthFile.path)
 
     val charCountDF = df
       .flatMap(_.split(""))
@@ -138,7 +190,11 @@ object CorpusExplorer {
       .sort($"char")
       .coalesce(1)
       .write
-      .csv(charCountFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(charCountFile.path)
 
     val charsByFrequencyFile = File(args(0) + ".char_distribution")
     removeOldOutput(charsByFrequencyFile)
@@ -147,8 +203,14 @@ object CorpusExplorer {
       .sort($"count".desc)
       .coalesce(1)
       .write
-      .csv(charsByFrequencyFile.path)
+      .mode("overwrite")
+      .format("csv")
+      .option("sep", "\t")
+      .option("quote", "")
+      .save(charsByFrequencyFile.path)
 
     println("The whole processing completed in %.5f seconds".format((System.currentTimeMillis() - startTime) / 1000f))
+
+    spark.close
   }
 }
