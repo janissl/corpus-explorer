@@ -8,7 +8,6 @@ import org.apache.spark.sql.functions._
 
 import scala.reflect.io.File
 
-
 object CorpusExplorer {
   def getFullstopTokens: UserDefinedFunction = udf(
     (wordList: Seq[String]) => {
@@ -72,7 +71,7 @@ object CorpusExplorer {
       .filter($"fullstopTokens".isNotNull)
       .groupBy($"fullstopTokens")
       .count
-      .sort($"fullstopTokens")
+      .sort($"count".desc)
       .coalesce(1)
       .write
       .mode("overwrite")
