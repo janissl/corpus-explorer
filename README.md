@@ -22,6 +22,11 @@ Once the execution of the command above has been completed, you will find the fo
 
   Includes a CSV file with same data as under _*.char_count_ but sorted by the number of occurrences in descending order.
   
+- _*.fullstop_tokens_
+
+  Includes a CSV file with two columns - __last_dot_terminated_token_in_sentence__ and __number_of_its_occurrences__ - sorted by the number of occurrences in descending order.
+  May be useful for finding erroneous sentence breaks (e.g. after abbreviations) etc.
+
 - _*.sentence_length_distribution_
 
   Includes a CSV file with two columns - __sentence_length__ and __number_of_sentences_with_such_length__ - sorted by sentence length in descending order.
