@@ -126,7 +126,8 @@ object CorpusExplorer {
     removeOldOutput(wordCountFile)
 
     wordCountDF
-      .sort($"word")
+      // .sort($"word")
+      .sort($"count".desc, $"word")
       .coalesce(1)
       .write
       .mode("overwrite")
@@ -186,7 +187,8 @@ object CorpusExplorer {
     removeOldOutput(charCountFile)
 
     charCountDF
-      .sort($"char")
+      // .sort($"char")
+      .sort($"count".desc, $"char")
       .coalesce(1)
       .write
       .mode("overwrite")
