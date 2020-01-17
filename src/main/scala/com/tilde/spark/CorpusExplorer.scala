@@ -194,6 +194,8 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
+      .option("ignoreLeadingWhiteSpace", "false")
+      .option("ignoreTrailingWhiteSpace", "false")
       .save(charCountFile.path)
 
     val charsByFrequencyFile = File(args(0) + ".char_distribution")
@@ -207,6 +209,8 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
+      .option("ignoreLeadingWhiteSpace", "false")
+      .option("ignoreTrailingWhiteSpace", "false")
       .save(charsByFrequencyFile.path)
 
     println("The whole processing completed in %.5f seconds".format((System.currentTimeMillis() - startTime) / 1000f))
