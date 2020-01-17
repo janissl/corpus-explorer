@@ -61,8 +61,8 @@ object CorpusExplorer {
     println("Unique sentences: %d (from %d)".format(df.dropDuplicates.count, df.count))
 
     val wordsDF = df
-      .withColumn("words", split(df("value"), """\s+"""))
       .withColumnRenamed("value", "sentence")
+      .withColumn("words", split($"sentence", """\s+"""))
 
     val fullstopTokenFile = File(args(0) + ".fullstop_tokens")
 
