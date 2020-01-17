@@ -1,14 +1,19 @@
 package com.tilde.spark
 
 import java.lang.management.ManagementFactory
+import java.nio.file.{Files, Path, Paths}
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 
-import scala.reflect.io.File
 
 object CorpusExplorer {
+  def printUsage(): Unit = {
+    println("USAGE: spark-submit --class com.tilde.spark.CorpusExplorer --master local[*] " +
+      "corpus-explorer-1.0-SNAPSHOT.jar ${path_or_pattern/to/plaintext/corpus/file} ${output_directory}")
+  }
+
   def getFullstopTokens: UserDefinedFunction = udf(
     (wordList: Seq[String]) => {
       val lastWord = wordList.last
@@ -27,17 +32,38 @@ object CorpusExplorer {
     (wordList: Seq[String]) => for (word <- wordList if word.length > 20) yield word
   )
 
-  def removeOldOutput(file: File): Unit = {
-    if (file.exists) {
-      if (file.isFile) {
-        file.delete
-      } else if (file.isDirectory) {
-        file.deleteRecursively
+  def outputDirExists(path: Path): Boolean = {
+    try {
+      Files.createDirectories(path)
+      true
+    } catch {
+      case e: java.io.IOException => println(e.getMessage)
+        false
+    }
+  }
+
+  def removeOldOutput(path: Path): Unit = {
+    if (Files.exists(path)) {
+      if (Files.isRegularFile(path)) {
+        Files.deleteIfExists(path)
+      } else if (Files.isDirectory(path)) {
+        path.toFile.listFiles.foreach(f => Files.deleteIfExists(f.toPath))
       }
     }
   }
 
   def main(args: Array[String]): Unit = {
+    if (args.length != 2 || args.contains("--help") || args.contains("-h")) {
+      printUsage()
+      System.exit(1)
+    }
+
+    val outputDirPath = Paths.get(args(1))
+
+    if (!outputDirExists(outputDirPath)) {
+      System.exit(1)
+    }
+
     val startTime = System.currentTimeMillis()
 
     val appName = CorpusExplorer.getClass.getSimpleName.replaceAll("""\$$""", "")
@@ -64,7 +90,7 @@ object CorpusExplorer {
       .withColumnRenamed("value", "sentence")
       .withColumn("words", split($"sentence", """\p{Z}+"""))
 
-    val fullstopTokenFile = File(args(0) + ".fullstop_tokens")
+    val fullstopTokenFilePath = outputDirPath.resolve("fullstop_tokens")
 
     wordsDF
       .withColumn("fullstopTokens", getFullstopTokens($"words"))
@@ -78,14 +104,14 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
-      .save(fullstopTokenFile.path)
+      .save(fullstopTokenFilePath.toString)
 
     val sentLengthDF = wordsDF
       .withColumn("sentence_length", size($"words"))
       .drop($"words")
 
-    val sentencesByLengthFile = File(args(0) + ".sentences_by_length")
-    removeOldOutput(sentencesByLengthFile)
+    val sentencesByLengthFilePath = outputDirPath.resolve("sentences_by_length")
+    removeOldOutput(sentencesByLengthFilePath)
 
     sentLengthDF
       .sort($"sentence_length".desc, $"sentence")
@@ -95,10 +121,10 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
-      .save(sentencesByLengthFile.path)
+      .save(sentencesByLengthFilePath.toString)
 
-    val sentLengthDistributionFile = File(args(0) + ".sentence_length_distribution")
-    removeOldOutput(sentLengthDistributionFile)
+    val sentLengthDistributionFilePath = outputDirPath.resolve("sentence_length_distribution")
+    removeOldOutput(sentLengthDistributionFilePath)
 
     sentLengthDF
       .drop("sentence")
@@ -111,7 +137,7 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
-      .save(sentLengthDistributionFile.path)
+      .save(sentLengthDistributionFilePath.toString)
 
     val wordCountDF = df
       .flatMap(_.split("""\p{Z}+"""))
@@ -123,8 +149,8 @@ object CorpusExplorer {
       .groupBy($"word")
       .count
 
-    val wordCountFile = File(args(0) + ".word_count")
-    removeOldOutput(wordCountFile)
+    val wordCountFilePath = outputDirPath.resolve("word_count")
+    removeOldOutput(wordCountFilePath)
 
     wordCountDF
       .sort($"word")
@@ -134,7 +160,7 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
-      .save(wordCountFile.path)
+      .save(wordCountFilePath.toString)
 
     println("Unique words: %d (from %d)".format(
       wordCountDF.count,
@@ -147,8 +173,8 @@ object CorpusExplorer {
       .withColumn("word_length", length($"word"))
       .drop($"count")
 
-    val wordCountsByLengthFile = File(args(0) + ".word_length_distribution")
-    removeOldOutput(wordCountsByLengthFile)
+    val wordCountsByLengthFilePath = outputDirPath.resolve("word_length_distribution")
+    removeOldOutput(wordCountsByLengthFilePath)
 
     wordLengthDF
       .groupBy($"word_length")
@@ -160,10 +186,10 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
-      .save(wordCountsByLengthFile.path)
+      .save(wordCountsByLengthFilePath.toString)
 
-    val wordsByLengthFile = File(args(0) + ".words_by_length")
-    removeOldOutput(wordsByLengthFile)
+    val wordsByLengthFilePath = outputDirPath.resolve("words_by_length")
+    removeOldOutput(wordsByLengthFilePath)
 
     wordLengthDF
       .sort($"word_length".desc, $"word")
@@ -173,7 +199,7 @@ object CorpusExplorer {
       .format("csv")
       .option("sep", "\t")
       .option("quote", "")
-      .save(wordsByLengthFile.path)
+      .save(wordsByLengthFilePath.toString)
 
     val charCountDF = df
       .flatMap(_.split(""))
@@ -183,8 +209,8 @@ object CorpusExplorer {
       .groupBy($"char")
       .count
 
-    val charCountFile = File(args(0) + ".char_count")
-    removeOldOutput(charCountFile)
+    val charCountFilePath = outputDirPath.resolve("char_count")
+    removeOldOutput(charCountFilePath)
 
     charCountDF
       .sort($"char")
@@ -196,10 +222,10 @@ object CorpusExplorer {
       .option("quote", "")
       .option("ignoreLeadingWhiteSpace", "false")
       .option("ignoreTrailingWhiteSpace", "false")
-      .save(charCountFile.path)
+      .save(charCountFilePath.toString)
 
-    val charsByFrequencyFile = File(args(0) + ".char_distribution")
-    removeOldOutput(charsByFrequencyFile)
+    val charsByFrequencyFilePath = outputDirPath.resolve("char_distribution")
+    removeOldOutput(charsByFrequencyFilePath)
 
     charCountDF
       .sort($"count".desc, $"char")
@@ -211,7 +237,7 @@ object CorpusExplorer {
       .option("quote", "")
       .option("ignoreLeadingWhiteSpace", "false")
       .option("ignoreTrailingWhiteSpace", "false")
-      .save(charsByFrequencyFile.path)
+      .save(charsByFrequencyFilePath.toString)
 
     println("The whole processing completed in %.5f seconds".format((System.currentTimeMillis() - startTime) / 1000f))
 
