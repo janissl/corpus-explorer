@@ -187,7 +187,7 @@ object CorpusExplorer {
     removeOldOutput(charCountFile)
 
     charCountDF
-      .sort($"count".desc, $"char")
+      .sort($"char")
       .coalesce(1)
       .write
       .mode("overwrite")
@@ -202,7 +202,7 @@ object CorpusExplorer {
     removeOldOutput(charsByFrequencyFile)
 
     charCountDF
-      .sort($"count".desc)
+      .sort($"count".desc, $"char")
       .coalesce(1)
       .write
       .mode("overwrite")
