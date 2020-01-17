@@ -10,7 +10,14 @@ A tool for getting a quick insight in a text corpus.<br>
 Before running this app, your text corpus must be segmented - one sentence per line. Otherwise, you will get statistics about paragraphs instead of sentences.
 
 #### Usage example
-`spark-submit --class com.tilde.spark.CorpusExplorer --master local[*] corpus-explorer-1.0-SNAPSHOT.jar ${path/to/plaintext/corpus/file} ${output_directory}`
+```
+spark-submit \
+    --class com.tilde.spark.CorpusExplorer \
+    --master local[*] \
+    corpus-explorer-1.0-SNAPSHOT.jar \
+    ${path_or_pattern/to/plaintext/corpus/file} \
+    ${output_directory}
+```
 
 #### Results
 Once the execution of the command above has been completed, you will find the following subfolders in the output folder:
