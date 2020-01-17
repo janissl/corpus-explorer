@@ -116,6 +116,7 @@ object CorpusExplorer {
     val wordCountDF = df
       .flatMap(_.split("""\p{Z}+"""))
       .map(_.replaceAll("""^\W+|[^\w']+$""", ""))
+      .filter(_.nonEmpty)
       .map((_, 1))
       .withColumnRenamed("_1", "word")
       .withColumnRenamed("_2", "count")
