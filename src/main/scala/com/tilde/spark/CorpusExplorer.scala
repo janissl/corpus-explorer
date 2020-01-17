@@ -62,7 +62,7 @@ object CorpusExplorer {
 
     val wordsDF = df
       .withColumnRenamed("value", "sentence")
-      .withColumn("words", split($"sentence", """\s+"""))
+      .withColumn("words", split($"sentence", """\p{Z}+"""))
 
     val fullstopTokenFile = File(args(0) + ".fullstop_tokens")
 
@@ -114,7 +114,7 @@ object CorpusExplorer {
       .save(sentLengthDistributionFile.path)
 
     val wordCountDF = df
-      .flatMap(_.split("""\s+"""))
+      .flatMap(_.split("""\p{Z}+"""))
       .map(_.replaceAll("""^\W+|[^\w']+$""", ""))
       .map((_, 1))
       .withColumnRenamed("_1", "word")
