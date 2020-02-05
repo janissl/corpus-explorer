@@ -52,16 +52,11 @@ object CorpusExplorer {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-    if (args.length != 2 || args.contains("--help") || args.contains("-h")) {
-      printUsage()
-      System.exit(1)
-    }
-
-    val outputDirPath = Paths.get(args(1))
+  def explore(sourcePathPattern: String, outputDir: String): Unit = {
+    val outputDirPath = Paths.get(outputDir)
 
     if (!outputDirExists(outputDirPath)) {
-      System.exit(1)
+      throw new Exception("Could not create the output directory '%s'".format(outputDir))
     }
 
     val startTime = System.currentTimeMillis()
@@ -82,7 +77,7 @@ object CorpusExplorer {
       .option("encoding", "UTF-8")
       .option("quote", "")
       .option("header", "false")
-      .textFile(args(0))
+      .textFile(sourcePathPattern)
 
     println("Unique sentences: %d (from %d)".format(df.dropDuplicates.count, df.count))
 
@@ -242,5 +237,19 @@ object CorpusExplorer {
     println("The whole processing completed in %.5f seconds".format((System.currentTimeMillis() - startTime) / 1000f))
 
     spark.close
+  }
+
+  def main(args: Array[String]): Unit = {
+    if (args.length != 2 || args.contains("--help") || args.contains("-h")) {
+      printUsage()
+      System.exit(1)
+    }
+
+    try {
+      explore(args(0), args(1))
+    } catch {
+      case ex: Exception => println(ex.getMessage)
+        System.exit(1)
+    }
   }
 }
