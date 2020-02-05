@@ -4,8 +4,8 @@ A tool for getting a quick insight in a text corpus.<br>
 
 #### Prerequisites
 * Oracle JDK 8 or openjdk-8-jdk
-* Apache Spark 2.3.4
-* Scala 2.11
+* Apache Spark 2.4.4
+* Scala 2.12
 
 Before running this app, your text corpus must be segmented - one sentence per line. Otherwise, you will get statistics about paragraphs instead of sentences.
 
