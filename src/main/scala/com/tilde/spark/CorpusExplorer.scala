@@ -88,7 +88,9 @@ object CorpusExplorer {
     val fullstopTokenFilePath = outputDirPath.resolve("fullstop_tokens")
 
     wordsDF
+      .drop("sentence")
       .withColumn("fullstopTokens", getFullstopTokens($"words"))
+      .drop("words")
       .filter($"fullstopTokens".isNotNull)
       .groupBy($"fullstopTokens")
       .count
@@ -165,8 +167,8 @@ object CorpusExplorer {
         .getLong(0)))
 
     val wordLengthDF = wordCountDF
-      .withColumn("word_length", length($"word"))
       .drop($"count")
+      .withColumn("word_length", length($"word"))
 
     val wordCountsByLengthFilePath = outputDirPath.resolve("word_length_distribution")
     removeOldOutput(wordCountsByLengthFilePath)
