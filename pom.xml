@@ -20,7 +20,7 @@
     <encoding>UTF-8</encoding>
     <scala.version>2.12.10</scala.version>
     <scala.compat.version>2.12</scala.compat.version>
-    <spark.version>2.4.4</spark.version>
+    <spark.version>2.4.5</spark.version>
     <spec2.version>4.8.3</spec2.version>
   </properties>
 
