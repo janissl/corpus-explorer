@@ -247,11 +247,6 @@ object CorpusExplorer {
       System.exit(1)
     }
 
-    try {
-      explore(args(0), args(1))
-    } catch {
-      case ex: Exception => println(ex.getMessage)
-        System.exit(1)
-    }
+    explore(args(0), args(1))
   }
 }
