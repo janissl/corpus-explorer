@@ -11,7 +11,7 @@ import org.apache.spark.sql.functions._
 object CorpusExplorer {
   def printUsage(): Unit = {
     println("USAGE: spark-submit --class com.tilde.spark.CorpusExplorer --master local[*] " +
-      "corpus-explorer-1.0-SNAPSHOT.jar ${path_or_pattern/to/plaintext/corpus/file} ${output_directory}")
+      "corpus-explorer-1.0-SNAPSHOT.jar \"PLAINTEXT/CORPUS/PATH/OR/PATTERN\" OUTPUT_DIRECTORY>")
   }
 
   def getFullstopTokens: UserDefinedFunction = udf(
@@ -83,7 +83,7 @@ object CorpusExplorer {
 
     val wordsDF = df
       .withColumnRenamed("value", "sentence")
-      .withColumn("words", split($"sentence", """\p{Z}+"""))
+      .withColumn("words", split($"sentence", """[\p{Z}\s]+"""))
 
     val fullstopTokenFilePath = outputDirPath.resolve("fullstop_tokens")
 
@@ -137,7 +137,7 @@ object CorpusExplorer {
       .save(sentLengthDistributionFilePath.toString)
 
     val wordCountDF = df
-      .flatMap(_.split("""\p{Z}+"""))
+      .flatMap(_.split("""[\p{Z}\s]+"""))
       .map(_.replaceAll("""^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$""", ""))
       .filter(_.nonEmpty)
       .map((_, 1))
@@ -237,8 +237,6 @@ object CorpusExplorer {
       .save(charsByFrequencyFilePath.toString)
 
     println("The whole processing completed in %.5f seconds".format((System.currentTimeMillis() - startTime) / 1000f))
-
-    spark.close
   }
 
   def main(args: Array[String]): Unit = {
