@@ -20,8 +20,11 @@ object CorpusExplorer {
 
   def getFullstopToken(): UserDefinedFunction = udf(
     (wordList: Seq[String]) => {
-      val lastWord = wordList.last
-      if (lastWord.last == '.' && lastWord.init.last.isLetter) lastWord
+      if (wordList.nonEmpty) {
+        val lastWord = wordList.last
+        if (lastWord.nonEmpty && lastWord.last == '.' && lastWord.init.nonEmpty && lastWord.init.last.isLetter) lastWord
+        else null
+      }
       else null
     })
 
