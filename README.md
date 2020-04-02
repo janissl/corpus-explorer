@@ -15,7 +15,7 @@ spark-submit \
     --class com.tilde.spark.CorpusExplorer \
     --master local[*] \
     corpus-explorer-1.0-SNAPSHOT.jar \
-    ${path_or_pattern/to/plaintext/corpus/file} \
+    ${file/or/directory/path/of/plaintext/corpus} \
     ${output_directory}
 ```
 

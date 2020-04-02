@@ -15,7 +15,7 @@ object CorpusExplorer {
 
   def printUsage(): Unit = {
     println("USAGE: spark-submit --class %s --master local[*] ".format(getAppName(CorpusExplorer.getClass.getCanonicalName)) +
-      "<JAR_PATH> \"PLAINTEXT/CORPUS/PATH/OR/PATTERN\" OUTPUT_DIRECTORY>")
+      "<JAR_PATH> <FILE/OR/DIRECTORY/PATH/OF/PLAINTEXT/CORPUS> <OUTPUT_DIRECTORY>")
   }
 
   def getFullstopToken(): UserDefinedFunction = udf(
