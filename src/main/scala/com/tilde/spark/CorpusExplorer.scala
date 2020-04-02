@@ -7,30 +7,23 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 
+import scala.annotation.tailrec
+
 
 object CorpusExplorer {
+  private val appName = getAppName(CorpusExplorer.getClass.getSimpleName)
+
   def printUsage(): Unit = {
-    println("USAGE: spark-submit --class com.tilde.spark.CorpusExplorer --master local[*] " +
-      "corpus-explorer-1.0-SNAPSHOT.jar \"PLAINTEXT/CORPUS/PATH/OR/PATTERN\" OUTPUT_DIRECTORY>")
+    println("USAGE: spark-submit --class %s --master local[*] ".format(getAppName(CorpusExplorer.getClass.getCanonicalName)) +
+      "<JAR_PATH> \"PLAINTEXT/CORPUS/PATH/OR/PATTERN\" OUTPUT_DIRECTORY>")
   }
 
-  def getFullstopTokens: UserDefinedFunction = udf(
+  def getFullstopToken(): UserDefinedFunction = udf(
     (wordList: Seq[String]) => {
       val lastWord = wordList.last
-      if (lastWord.matches("""^.*\p{L}\.$""")) {
-        lastWord
-      } else {
-        null
-      }
+      if (lastWord.last == '.' && lastWord.init.last.isLetter) lastWord
+      else null
     })
-
-  def getMaxWordLength: UserDefinedFunction = udf(
-    (wordList: Seq[String]) => (for (word <- wordList) yield word.length).max
-  )
-
-  def getLongWords: UserDefinedFunction = udf(
-    (wordList: Seq[String]) => for (word <- wordList if word.length > 20) yield word
-  )
 
   def outputDirExists(path: Path): Boolean = {
     try {
@@ -52,6 +45,28 @@ object CorpusExplorer {
     }
   }
 
+  @tailrec
+  def getAppName(name: String): String = {
+    if (name.isEmpty || name.last != '$') name
+    else getAppName(name.init)
+  }
+
+  @tailrec
+  def leftTrimPunct(token: String): String = {
+    if (token.isEmpty || token.head.isLetterOrDigit) token
+    else leftTrimPunct(token.tail)
+  }
+
+  @tailrec
+  def rightTrimPunct(token: String): String = {
+    if (token.isEmpty || token.last.isLetterOrDigit) token
+    else rightTrimPunct(token.init)
+  }
+
+  def trimPunct(token: String): String = {
+    leftTrimPunct(rightTrimPunct(token))
+  }
+
   def explore(sourcePathPattern: String, outputDir: String): Unit = {
     val outputDirPath = Paths.get(outputDir)
 
@@ -61,7 +76,6 @@ object CorpusExplorer {
 
     val startTime = System.currentTimeMillis()
 
-    val appName = CorpusExplorer.getClass.getSimpleName.replaceAll("""\$$""", "")
     val appMode = if (ManagementFactory.getRuntimeMXBean.getInputArguments.toString.indexOf("-agentlib:jdwp") > 0) "debug" else "run"
 
     val spark = if (appMode == "debug") {
@@ -89,7 +103,7 @@ object CorpusExplorer {
 
     wordsDF
       .drop("sentence")
-      .withColumn("fullstopTokens", getFullstopTokens($"words"))
+      .withColumn("fullstopTokens", getFullstopToken()($"words"))
       .drop("words")
       .filter($"fullstopTokens".isNotNull)
       .groupBy($"fullstopTokens")
@@ -138,7 +152,7 @@ object CorpusExplorer {
 
     val wordCountDF = df
       .flatMap(_.split("""[\p{Z}\s]+"""))
-      .map(_.replaceAll("""^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$""", ""))
+      .map(trimPunct)
       .filter(_.nonEmpty)
       .map((_, 1))
       .withColumnRenamed("_1", "word")
